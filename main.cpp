@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 
-#define IMAGE "test1.jpg"
+#define IMAGE "test.png"
 
 using namespace std;
 using namespace cv;
@@ -40,7 +40,7 @@ int main()
 		}
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
-		HoughLinesP(imgSec, lines, 1, CV_PI/180, 80, 30);
+		HoughLinesP(imgSec, lines, 1, CV_PI/180, 10, 10);
 		cout << "Total Lines = " << lines.size() << endl;
 		for(int i = 0; i < lines.size(); ++i)
 		{
@@ -52,30 +52,21 @@ int main()
 		for(int j = 0; j < lines.size(); ++j)
 		{
 			float a1;
-			try
-			{
-				a1 = (lines[j][3] - lines[j][1])/(lines[j][2] - lines[j][0]);
-			}
-			catch(...)
-			{
+			if(!(lines[j][2] - lines[j][0]))
 				continue;
-			}
+			a1 = (lines[j][3] - lines[j][1])/(lines[j][2] - lines[j][0]);
 			float b1 = -1;
 			float c1 = lines[j][0] - lines[j][1];
 			for(int i = j + 1; i < lines.size(); ++i)
 			{
 				float a2;
-				try
-				{
-					a2 = (lines[i][3] - lines[i][1])/(lines[i][2] - lines[i][0]);
-				}
-				catch(...)
-				{
+				if(!(lines[i][2] - lines[i][0]))
 					continue;
-				}
+				a2 = (lines[i][3] - lines[i][1])/(lines[i][2] - lines[i][0]);
 				float b2 = -1;
 				float c2 = lines[i][0] - lines[i][1];
 				float det = a1*b2 - a2*b1;
+				cout << det << endl;
 				if((int)(100*fabs(det)) != 0)
 				{
 					int x = (c1*b2 - c2*b1)/det;
@@ -88,7 +79,10 @@ int main()
 						cout << " ^\t^\t";
 						int lengthSum = (sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2)) + sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)));
 						cout << lengthSum << endl;
-						imgVot.at<uchar>(y,x) = 255;
+						if(imgVot.at<uchar>(y,x) + lengthSum <= 255)
+							imgVot.at<uchar>(y,x) += lengthSum;
+						else
+							imgVot.at<uchar>(y,x) = 255;
 						//imgVot.at<uchar>(y,x) += (sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2))
 						//					    + sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)))/10;
 					}
