@@ -17,6 +17,7 @@ const float slopeThreshold = 0.3;
 const int horWidth = 1;
 const int hThres = 10;
 const int hMinLineLength = 5;
+const int cannyLowT = 100;
 
 bool inBounds(int x, int y)
 {
@@ -87,7 +88,6 @@ int main(int argc, char *argv[])
 		img = imread(argv[1], 0);
 		imgO = imread(argv[1], 1);	
 	}
-	Canny( img, img, 100, 250, 3 );
 	Mat imgSec(img.rows/sections, img.cols, CV_8UC1, Scalar(0));
 	Mat imgVotes(img.rows, img.cols, CV_8UC3, Scalar(0,0,0));
 	vector<Vec3i> secLines[img.rows];
@@ -101,6 +101,7 @@ int main(int argc, char *argv[])
 				imgSec.at<uchar>(Y,x) = img.at<uchar>(y,x);
 			Y += 1;
 		}
+		Canny(imgSec, imgSec, 100 - 10*k, 3*(100 - 10*k), 3);
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
 		HoughLinesP(imgSec, lines, 1, CV_PI/180, hThres + k, hMinLineLength + k/2);
@@ -145,7 +146,6 @@ int main(int argc, char *argv[])
 			for(int i=0; i < secLines[y].size(); ++i)
 				drawExtendedLine(secLines[y][i][0], secLines[y][i][1], secLines[y][i][2], vecOfLines[secLines[y][i][2]]);
 	}
-	imshow("Canny", img);
 	imshow("Votes", imgVotes);
 	imshow("Original", imgO);
 	waitKey(0);
