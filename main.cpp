@@ -17,7 +17,6 @@ const float slopeThreshold = 0.3;
 const int horWidth = 1;
 const int hThres = 10;
 const int hMinLineLength = 5;
-const int cannyLowT = 100;
 
 bool inBounds(int x, int y)
 {
@@ -101,7 +100,10 @@ int main(int argc, char *argv[])
 				imgSec.at<uchar>(Y,x) = img.at<uchar>(y,x);
 			Y += 1;
 		}
-		Canny(imgSec, imgSec, 100 - 10*k, 3*(100 - 10*k), 3);
+		vector<Mat> channels;
+		split(imgSec, channels);
+		Scalar secMean = mean(channels[0]);
+		Canny(imgSec, imgSec, secMean[0], 3*(secMean[0]), 3);
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
 		HoughLinesP(imgSec, lines, 1, CV_PI/180, hThres + k, hMinLineLength + k/2);
