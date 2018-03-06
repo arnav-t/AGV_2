@@ -13,6 +13,7 @@ using namespace cv;
 Mat img = imread(IMAGE, 0);
 Mat imgO = imread(IMAGE, 1);
 const int sections = 5;
+const int horThreshold = 100;
 
 bool inBounds(int x, int y)
 {
@@ -79,6 +80,8 @@ int main()
 	Mat imgVot(img.rows, img.cols, CV_8UC1, Scalar(0));
 	Mat imgHor(img.rows, img.cols, CV_8UC1, Scalar(0));
 	Mat imgSec(img.rows/sections, img.cols, CV_8UC1, Scalar(0));
+	vector<Vec3i> secLines[img.rows];
+	vector<vector<Vec4i>> vecOfLines;
 	for(int k = 0; k < sections; ++k)
 	{
 		int Y = 0;
@@ -91,12 +94,13 @@ int main()
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
 		HoughLinesP(imgSec, lines, 1, CV_PI/180, 50, 10);
+		vecOfLines.push_back(lines);
 		cout << "Total Lines = " << lines.size() << endl;
 		for(int j = 0; j < lines.size(); ++j)
 		{
 			for(int i = j + 1; i < lines.size(); ++i)
 			{
-				drawExtendedLine(i, j, k, lines);
+				//drawExtendedLine(i, j, k, lines);
 				Point inter = lineIntersection(Point(lines[j][0],lines[j][1]),Point(lines[j][2],lines[j][3]),Point(lines[i][0],lines[i][1]),Point(lines[i][2],lines[i][3]));
 				inter.y += k*(img.rows/sections);
 				if(inBounds(inter.x,inter.y))
@@ -112,6 +116,7 @@ int main()
 					else
 						for(int X = 0; X < img.cols; ++X)
 							imgHor.at<uchar>(inter.y,X) = 255;
+					secLines[inter.y].push_back(Vec3i(i,j,k));
 					//imgVot.at<uchar>(y,x) += (sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2))
 					//					    + sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)))/10;
 				}
@@ -119,6 +124,12 @@ int main()
 		}
 		//imshow("Sec", imgSec);
 		//waitKey(0);
+	}
+	for(int y = 0; y < img.rows; ++y)
+	{
+		if(imgHor.at<uchar>(y,0) >= horThreshold)
+			for(int i=0; i < secLines[y].size(); ++i)
+				drawExtendedLine(secLines[y][i][0], secLines[y][i][1], secLines[y][i][2], vecOfLines[secLines[y][i][2]]);
 	}
 	imshow("Canny", img);
 	imshow("Votes", imgVot);
