@@ -1,6 +1,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
+#include <string>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -12,11 +13,11 @@ using namespace cv;
 
 Mat img = imread(IMAGE, 0);
 Mat imgO = imread(IMAGE, 1);
-const int sections = 5;
+const int sections = 10;
 const float slopeThreshold = 0.3;
 const int horWidth = 1;
-const int hThres = 10;
-const int hMinLineLength = 5;
+const int hThres = 7;
+const int hMinLineLength = 4;
 
 bool inBounds(int x, int y)
 {
@@ -82,10 +83,12 @@ void drawExtendedLine(int i, int j, int k, vector<Vec4i> &lines)
 
 int main(int argc, char *argv[])
 {
+	char loadPath[64] = IMAGE; 
 	if(argc == 2)
 	{
 		img = imread(argv[1], 0);
 		imgO = imread(argv[1], 1);	
+		strcpy(loadPath, argv[1]);
 	}
 	Mat imgSec(img.rows/sections, img.cols, CV_8UC1, Scalar(0));
 	Mat imgVotes(img.rows, img.cols, CV_8UC3, Scalar(0,0,0));
@@ -106,7 +109,7 @@ int main(int argc, char *argv[])
 		Canny(imgSec, imgSec, secMean[0], 3*(secMean[0]), 3);
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
-		HoughLinesP(imgSec, lines, 1, CV_PI/180, hThres + k, hMinLineLength + k/2);
+		HoughLinesP(imgSec, lines, 1, CV_PI/180, hThres + k/6, hMinLineLength);
 		vecOfLines.push_back(lines);
 		cout << "Total Lines = " << lines.size() << endl;
 		for(int j = 0; j < lines.size(); ++j)
@@ -150,6 +153,10 @@ int main(int argc, char *argv[])
 	}
 	imshow("Votes", imgVotes);
 	imshow("Original", imgO);
+	char savePath[32] = "./result/";
+	strcat(savePath, loadPath + 24);
+	cout << "\n\nResult saved to " << savePath << endl;
+	imwrite(savePath, imgO);
 	waitKey(0);
 	return 0;
 }
