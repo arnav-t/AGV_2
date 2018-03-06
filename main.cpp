@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 
-#define IMAGE "./testing/image_0/um_000000.png"
+#define IMAGE "./testing/image_0/um_000003.png"
 
 using namespace std;
 using namespace cv;
@@ -13,8 +13,10 @@ using namespace cv;
 Mat img = imread(IMAGE, 0);
 Mat imgO = imread(IMAGE, 1);
 const int sections = 5;
-const int horThreshold = 90;
-const float slopeThreshold = 0.2;
+const float slopeThreshold = 0.3;
+const int horWidth = 1;
+const int hThres = 10;
+const int hMinLineLength = 5;
 
 bool inBounds(int x, int y)
 {
@@ -78,12 +80,16 @@ void drawExtendedLine(int i, int j, int k, vector<Vec4i> &lines)
 	line(imgO, j1, j2, Scalar(0,0,255), 1, CV_AA);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+	if(argc == 2)
+	{
+		img = imread(argv[1], 0);
+		imgO = imread(argv[1], 1);	
+	}
 	Canny( img, img, 100, 250, 3 );
-	Mat imgVot(img.rows, img.cols, CV_8UC1, Scalar(0));
-	Mat imgHor(img.rows, img.cols, CV_8UC1, Scalar(0));
 	Mat imgSec(img.rows/sections, img.cols, CV_8UC1, Scalar(0));
+	Mat imgVotes(img.rows, img.cols, CV_8UC3, Scalar(0,0,0));
 	vector<Vec3i> secLines[img.rows];
 	vector<vector<Vec4i>> vecOfLines;
 	for(int k = 0; k < sections; ++k)
@@ -97,7 +103,7 @@ int main()
 		}
 		cout << "\n\nk = " << k << endl;
 		vector<Vec4i> lines;
-		HoughLinesP(imgSec, lines, 1, CV_PI/180, 50, 10);
+		HoughLinesP(imgSec, lines, 1, CV_PI/180, hThres + k, hMinLineLength + k/2);
 		vecOfLines.push_back(lines);
 		cout << "Total Lines = " << lines.size() << endl;
 		for(int j = 0; j < lines.size(); ++j)
@@ -110,16 +116,16 @@ int main()
 				if(inBounds(inter.x,inter.y))
 				{
 					int length = min(sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2)), sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)));
-					if(imgVot.at<uchar>(inter.y,inter.x) + length <= 255)
-						imgVot.at<uchar>(inter.y,inter.x) += length;
+					if(imgVotes.at<Vec3b>(inter.y,inter.x)[0] + 4*length <= 255)
+						imgVotes.at<Vec3b>(inter.y,inter.x)[0] += 4*length;
 					else
-						imgVot.at<uchar>(inter.y,inter.x) = 255;
-					if(imgHor.at<uchar>(inter.y,0) + length/4 <= 255)
+						imgVotes.at<Vec3b>(inter.y,inter.x)[0] = 255;
+					if(imgVotes.at<Vec3b>(inter.y,0)[1] + length/8 <= 255)
 						for(int X = 0; X < img.cols; ++X)
-							imgHor.at<uchar>(inter.y,X) += length/4;
+							imgVotes.at<Vec3b>(inter.y,X)[1] += length/8;
 					else
 						for(int X = 0; X < img.cols; ++X)
-							imgHor.at<uchar>(inter.y,X) = 255;
+							imgVotes.at<Vec3b>(inter.y,X)[1] = 255;
 					secLines[inter.y].push_back(Vec3i(i,j,k));
 					//imgVot.at<uchar>(y,x) += (sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2))
 					//					    + sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)))/10;
@@ -129,15 +135,18 @@ int main()
 		//imshow("Sec", imgSec);
 		//waitKey(0);
 	}
+	int peakY = 0;
+	for(int y = 0; y < img.rows; ++y)
+		if(imgVotes.at<Vec3b>(y,0)[1] > imgVotes.at<Vec3b>(peakY,0)[1])
+			peakY = y;
 	for(int y = 0; y < img.rows; ++y)
 	{
-		if(imgHor.at<uchar>(y,0) >= horThreshold)
+		if(abs(y - peakY) <= horWidth)
 			for(int i=0; i < secLines[y].size(); ++i)
 				drawExtendedLine(secLines[y][i][0], secLines[y][i][1], secLines[y][i][2], vecOfLines[secLines[y][i][2]]);
 	}
 	imshow("Canny", img);
-	imshow("Votes", imgVot);
-	imshow("Horizon", imgHor);
+	imshow("Votes", imgVotes);
 	imshow("Original", imgO);
 	waitKey(0);
 	return 0;
