@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 
-#define IMAGE "test1.jpg"
+#define IMAGE "./testing/image_0/um_000000.png"
 
 using namespace std;
 using namespace cv;
@@ -13,7 +13,8 @@ using namespace cv;
 Mat img = imread(IMAGE, 0);
 Mat imgO = imread(IMAGE, 1);
 const int sections = 5;
-const int horThreshold = 100;
+const int horThreshold = 90;
+const float slopeThreshold = 0.2;
 
 bool inBounds(int x, int y)
 {
@@ -47,12 +48,13 @@ Point lineIntersection(Point A, Point B, Point C, Point D)
     }
 }
 
-void extendOutside(Point2f &a, Point2f &b)
+float extendOutside(Point2f &a, Point2f &b)
 {
 	float m = (b.y - a.y)/(b.x - a.x);
 	float c = a.y - m*a.x;
 	a = Point(0, c);
 	b = Point(img.cols, m*(img.cols) + c);
+	return m;
 }
 
 void drawExtendedLine(int i, int j, int k, vector<Vec4i> &lines)
@@ -60,14 +62,16 @@ void drawExtendedLine(int i, int j, int k, vector<Vec4i> &lines)
 	Rect secRect(0, k*(img.rows/sections), img.cols, img.rows/sections);
 	Point2f i1f = Point(lines[i][2],lines[i][3] + k*(img.rows/sections));
 	Point2f i2f = Point(lines[i][0],lines[i][1] + k*(img.rows/sections));
-	extendOutside(i1f, i2f);
+	if(fabs(extendOutside(i1f, i2f)) < slopeThreshold)
+		return;
 	Point i1(i1f.x, i1f.y);
 	Point i2(i2f.x, i2f.y);
 	clipLine(secRect, i1, i2);
 	line(imgO, i1, i2, Scalar(0,0,255), 1, CV_AA);
 	Point2f j1f = Point(lines[j][2],lines[j][3] + k*(img.rows/sections));
 	Point2f j2f = Point(lines[j][0],lines[j][1] + k*(img.rows/sections));
-	extendOutside(j1f, j2f);
+	if(fabs(extendOutside(j1f, j2f)) < slopeThreshold)
+		return;
 	Point j1(j1f.x, j1f.y);
 	Point j2(j2f.x, j2f.y);
 	clipLine(secRect, j1, j2);
