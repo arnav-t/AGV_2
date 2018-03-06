@@ -46,6 +46,33 @@ Point lineIntersection(Point A, Point B, Point C, Point D)
     }
 }
 
+void extendOutside(Point2f &a, Point2f &b)
+{
+	float m = (b.y - a.y)/(b.x - a.x);
+	float c = a.y - m*a.x;
+	a = Point(0, c);
+	b = Point(img.cols, m*(img.cols) + c);
+}
+
+void drawExtendedLine(int i, int j, int k, vector<Vec4i> &lines)
+{
+	Rect secRect(0, k*(img.rows/sections), img.cols, img.rows/sections);
+	Point2f i1f = Point(lines[i][2],lines[i][3] + k*(img.rows/sections));
+	Point2f i2f = Point(lines[i][0],lines[i][1] + k*(img.rows/sections));
+	extendOutside(i1f, i2f);
+	Point i1(i1f.x, i1f.y);
+	Point i2(i2f.x, i2f.y);
+	clipLine(secRect, i1, i2);
+	line(imgO, i1, i2, Scalar(0,0,255), 1, CV_AA);
+	Point2f j1f = Point(lines[j][2],lines[j][3] + k*(img.rows/sections));
+	Point2f j2f = Point(lines[j][0],lines[j][1] + k*(img.rows/sections));
+	extendOutside(j1f, j2f);
+	Point j1(j1f.x, j1f.y);
+	Point j2(j2f.x, j2f.y);
+	clipLine(secRect, j1, j2);
+	line(imgO, j1, j2, Scalar(0,0,255), 1, CV_AA);
+}
+
 int main()
 {
 	Canny( img, img, 100, 250, 3 );
@@ -69,12 +96,11 @@ int main()
 		{
 			for(int i = j + 1; i < lines.size(); ++i)
 			{
+				drawExtendedLine(i, j, k, lines);
 				Point inter = lineIntersection(Point(lines[j][0],lines[j][1]),Point(lines[j][2],lines[j][3]),Point(lines[i][0],lines[i][1]),Point(lines[i][2],lines[i][3]));
 				inter.y += k*(img.rows/sections);
 				if(inBounds(inter.x,inter.y))
 				{
-					line(imgO, Point(lines[i][2],lines[i][3] + k*(img.rows/sections)), Point(lines[i][0],lines[i][1] + k*(img.rows/sections)), Scalar(0,0,255), 1, CV_AA);
-					line(imgO, Point(lines[j][2],lines[j][3] + k*(img.rows/sections)), Point(lines[j][0],lines[j][1] + k*(img.rows/sections)), Scalar(0,0,255), 1, CV_AA);
 					int length = min(sqrt(pow(lines[j][0]-lines[j][2],2) + pow(lines[j][1]-lines[j][3],2)), sqrt(pow(lines[i][0]-lines[i][2],2) + pow(lines[i][1]-lines[i][3],2)));
 					if(imgVot.at<uchar>(inter.y,inter.x) + length <= 255)
 						imgVot.at<uchar>(inter.y,inter.x) += length;
